@@ -46,9 +46,9 @@ class DataSource:
         file["channel"] = ""
         file["item_id"] = ""
         
-        file["channel"]= file["商品链接"].apply(self.check)
+        file["channel"]= file.loc[:,"商品链接"].apply(self.check)
         
-        list_ = file["商品链接"].apply(lambda row: row.split("="))
+        list_ = file.loc[:,"商品链接"].apply(lambda row: row.split("="))
         
         for i in range(len(list_)):
             if len(list_[i]) >2:
@@ -64,7 +64,8 @@ class Parser_TB:
                  from_data: Dict[str, str], 
                  user_agent: str, 
                  login_url:str, 
-                 base_url:str)-> None:
+                 base_url:str,
+                 ip: str)-> None:
         
     # IP been blocked after several runs
         self._from_data = from_data
@@ -77,6 +78,7 @@ class Parser_TB:
         }
         self.res = requests.Session()
         self.cookies_text = "cookies.text"
+        self.ip = ip
     
     def _get_cookie(self)-> Optional[Text]:
         """
@@ -85,19 +87,20 @@ class Parser_TB:
         if self._verify_cookies():
             return True
         try:
-            response = self.res.post(self.login_url, data = self._from_data)
+            response = self.res.post(self.login_url, 
+                                     data = self._from_data, 
+                                     proxies={'http': 'http://' + self.ip,
+                                              'https': 'https://' + self.ip})
             response.raise_for_status()
+            redirect = response.json()["needcode"]
 
         except Exception as e:
             print(f"Failed to scrap data, error : {e}")
             raise e
-
-        redirect = response.json()['content']['data']['redirect']
-
-        if redirect == True:
+        
+        if not redirect:
             print('Succeed getting cookies, to save')
             self._save_cookies()
-
         else:
             raise RuntimeError(f"User login FAILED! Error:{response.text}")
     
@@ -105,20 +108,19 @@ class Parser_TB:
     def _verify_cookies(self)->bool:
         if not os.path.exists(self.cookies_text):
             return False
-        res.cookies = self._load_cookies()
+        # res.cookies = self._load_cookies()
 
         try:
             self._is_login()
-
         except Exception as e:
-            os.remove(cookie_text)
+            os.remove(self.cookies_text)
             print('Deleted EXPIRED cookies!')
             return False
         print('Login Successfully!')
         return True
     
     def _is_login(self)-> bool:
-        response= res.get(self.login_url)
+        response= res.get(self.login_url, self.ip)
         username = re.search(r'<input id="mtb-nickname" type="hidden" value="(.*?)"/>', response.text)
         if username:
             print(f"UserName: {username.group(1)}")
@@ -129,18 +131,19 @@ class Parser_TB:
     # Save cookies locally
     def _save_cookies(self):
         # deserialization 反序列化
-        cookies_dict = requests.utils.dict_from_cookiejar(res.cookies)
-        with open(cookie_text,"w+", encoding="utf-8") as output:
+        cookies_dict = requests.utils.dict_from_cookiejar(self.res.cookies)
+        print(cookies_dict)
+        with open(self.cookies_text,"w+", encoding="utf-8") as output:
             json.dump(cookies_dict, output)
             
-    def _load_cookies(self):
-        with open(cookie_text, "r+", encoding="utf-8") as input:
-            cookies_dict = json.load(input)
+    # def _load_cookies(self):
+        # with open(self.cookies_text, "r+", encoding="utf-8") as input:
+            # cookies_dict = json.load(input)
             # serialization 序列化
-            cookies = requests.utils.cookiejar_from_dict(input)
-            return cookies
+            # cookies = requests.utils.cookiejar_from_dict(input)
+            # return cookies
 
-    def get_static_content(self, file: pd.DataFrame)->Tuple[str, Union[int,float, Any],int]:
+    def get_static_content(self, file: List[str])->Tuple[str, Union[int,float, Any],int]:
         """
         get_static_content for 商品标题, 划线价, 累计评论
         """
@@ -148,38 +151,28 @@ class Parser_TB:
         
         商品标题 = list()
         划线价 = list()
-        try:
-            for i in range(len(file.index)):
-                req= self.res.get(file["商品链接"][i], 
-                                  headers= self.headers,)
-                if res.status_code == 200:
-                    # statics={}
-                    HTML_PARSER= 'html.parser'
-                    soup = bs(res.text, HTML_PARSER)
-                    # res.json() #to get json
+        for i in range(len(file)):
+            print(i)
+            req= self.res.get(file[i], 
+                                headers= self.headers, 
+                                proxies={'http': 'http://' + self.ip,
+                                        'https': 'https://' + self.ip})
+            HTML_PARSER= 'html.parser'
+            soup = bs(req.text, HTML_PARSER)
+            print(soup)
+            try:
+                title = soup.find("h3", class_="tb-main-title").get_text().strip()
+                line_through_price = soup.find("em", class_="tb-rmb-num").get_text()
+                # time.sleep(9)
+                商品标题.append(title)
+                划线价.append(line_through_price)
+                
+            except Exception as e:
+                print(str(e))
+                title = "-"
+                line_through_price = "-"
 
-                    try:
-                        title = soup.find("h3", class_="tb-main-title").get_text().strip()
-                        line_through_price = soup.find("em", class_="tb-rmb-num").get_text()
-                        time.sleep(9)
-
-                    except Exception as e:
-                        print(str(e))
-                        title = "-"
-                        line_through_price = "-"
-                        
-
-                        商品标题.append(title)
-                        划线价.append(line_through_price)
-
-                        statics["商品标题"]= soup.find("h3", class_="tb-main-title").get_text().strip()
-                        statics["划线价"]= soup.find("em", class_="tb-rmb-num").get_text()
-                # return statics 
-            return pd.DataFrame({"商品标题":商品标题, "划线价": 划线价})
-
-        except Exception as e:
-            print(e)
-            pass 
+        return pd.DataFrame({"商品链接": file[i], "商品标题":商品标题, "划线价": 划线价})
 
     # parse
     def get_static_comment_update(self, url: str)->pd.DataFrame:
@@ -224,6 +217,21 @@ class Parser_TB:
             print(total_res)
 
 
+class Proxy:
+    @staticmethod
+    def get_proxy(proxy_url):
+        html = requests.get(proxy_url).text
+        proxies_=list()
+        if html:
+            result = json.loads(html)
+            proxies = result.get('RESULT')
+            for proxy in proxies:
+                ip = proxy.get('ip') + ':' + proxy.get('port')
+                proxies_.append(ip)
+                
+            return proxies_
+
+
 # TODO for JD
 class Parser_TM:
     def __init__(self):
@@ -259,29 +267,22 @@ if __name__== "__main__":
         "fromSite:": "0"
     }
     
-    df_instance= DataSource("爬取链接.xlsx")
+    df_instance = DataSource("爬取链接.xlsx")
     excel = df_instance.read_excel()
     excel= df_instance.extract_item_id(excel)
     tb_excel= excel[excel["channel"] == "taobao"]
     ajax_url= "https://detailskip.taobao.com/service/getData/1/p1/item/detail/sib.htm?itemId={}&modules=price,xmpPromotion,viewer,price,duty,xmpPromotion,activity,fqg,zjys,couponActivity,soldQuantity,page,originalPrice".format(excel["item_id"])
-    # user_agent= "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
-
-    ua_list = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36",
-     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.991",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36 OPR/42.0.2393.94",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36 OPR/47.0.2631.39",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) Gecko/20100101 Firefox/54.0",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) Gecko/20100101 Firefox/54.0",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) Gecko/20100101 Firefox/56.0",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) like Gecko"]
-    user_agent = random.choice(ua_list)
-    # referer= "https://item.taobao.com/item.htm"
+    user_agent= "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
+    
+    # add proxy server
+    proxy_url="http://api.xdaili.cn/xdaili-api//greatRecharge/getGreatIp?spiderId=c671e46bf2ae4092bd03a8ed3566c952&orderno=YZ20209189723EyhPHp&returnType=2&count=20"
+    proxy_ips = Proxy().get_proxy(proxy_url)
+    ip = random.choice(proxy_ips)
+    print(f"Get IP: {ip}")
     
     with open("cookies.txt") as f:
         cookies= f.read()
-    tb_parser= Parser_TB(from_data, user_agent, login_url, base_url)
-    test= tb_parser.get_static_content(tb_excel["商品链接"].values)
+    
+    tb_parser= Parser_TB(from_data, user_agent, login_url, base_url, ip)
+    test= tb_parser.get_static_content(tb_excel.loc[:,"商品链接"][:12].values)
     test.to_csv("static_fields.csv", index= False)
