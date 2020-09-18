@@ -128,4 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 cookies.txt
+.DS_Store
+*.ipynb
+readme1.md
+config.py
 

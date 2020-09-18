@@ -2,24 +2,26 @@ import pandas as pd
 import re
 import requests
 from bs4 import BeautifulSoup as bs
-from typing import List, Tuple, Any, Dict, Text, Union, Callable, Optional
 import time
+import random
 import json
 import os 
 import logging
 import urllib
 from pprint import pprint
+from typing import List, Tuple, Any, Dict, Text, Union, Callable, Optional
 
-from selenium import webdriver
-from pycookiecheat import chrome_cookies
-#
-from webdriver_manager.chrome import ChromeDriverManager
-browser = webdriver.Chrome(ChromeDriverManager().install())
+from config import * 
 
-logger = logging.getLogger(__name__)
+# from selenium import webdriver
+# from pycookiecheat import chrome_cookies
+# from webdriver_manager.chrome import ChromeDriverManager
+# browser = webdriver.Chrome(ChromeDriverManager().install())
 
 import warnings
 warnings.simplefilter("ignore")
+
+logger = logging.getLogger(__name__)
 
 #=========================
 # GET DATA SOURCE FILE
@@ -28,7 +30,6 @@ warnings.simplefilter("ignore")
 class DataSource:
     def __init__(self, file_path: str)-> pd.DataFrame:
         self.file_path = file_path
-        # self.base_path = base_path 
 
     def read_excel(self):
         return pd.read_excel(self.file_path) 
@@ -57,45 +58,44 @@ class DataSource:
                 
         return file
 
-####
 
 class Parser_TB:
-    
-    def __init__(self, from_data: Dict, user_agent: str, login_url:str, base_url:str)-> None:
-    # Check from Chrome inspect page for Login requested infos
-    self._from_data = from_data   
-    # LOGIN page
-    self.login_url = login_url
-    self.headers = {
-        'user-agent': user_agent,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        # 'Referer':base_url,
-    }
-    self.res = requests.Session()
-    self.cookies_text = "cookies.text"
-
+    def __init__(self, 
+                 from_data: Dict[str, str], 
+                 user_agent: str, 
+                 login_url:str, 
+                 base_url:str)-> None:
+        
+    # IP been blocked after several runs
+        self._from_data = from_data
+        self.login_url = login_url
+        self.base_url= base_url
+        self.headers = {
+            'user-agent': user_agent,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            # 'Referer':base_url,
+        }
+        self.res = requests.Session()
+        self.cookies_text = "cookies.text"
     
     def _get_cookie(self)-> Optional[Text]:
         """
-        _get_cookie LOGIN to get Cookies and save to local dir
-        Raises:
-        Returns:
+        LOGIN to get Cookies and save to local dir
         """
         if self._verify_cookies():
             return True
-            
         try:
-            response = res.post(self.login_url, data = self._from_data)
+            response = self.res.post(self.login_url, data = self._from_data)
             response.raise_for_status()
 
         except Exception as e:
-            logger.error(f"Failed to scrap data, error : {e}")
+            print(f"Failed to scrap data, error : {e}")
             raise e
 
         redirect = response.json()['content']['data']['redirect']
 
         if redirect == True:
-            logger.info('Succeed getting cookies, to save')
+            print('Succeed getting cookies, to save')
             self._save_cookies()
 
         else:
@@ -103,7 +103,7 @@ class Parser_TB:
     
     # Check if have cookies and if expired
     def _verify_cookies(self)->bool:
-        if not os.path.exists(cookie_text):
+        if not os.path.exists(self.cookies_text):
             return False
         res.cookies = self._load_cookies()
 
@@ -112,24 +112,21 @@ class Parser_TB:
 
         except Exception as e:
             os.remove(cookie_text)
-            pprint('Deleted EXPIRED cookies!')
+            print('Deleted EXPIRED cookies!')
             return False
-        
-        pprint('Login Successfully!')
+        print('Login Successfully!')
         return True
     
     def _is_login(self)-> bool:
-        response=res.get(self.i_taobao_url)
+        response= res.get(self.login_url)
         username = re.search(r'<input id="mtb-nickname" type="hidden" value="(.*?)"/>', response.text)
-        
         if username:
-            print(f"UserName{username.group(1)}")
+            print(f"UserName: {username.group(1)}")
             return True
         
         raise RuntimeError("Login Failed!")
 
-
-    #Save cookies locally
+    # Save cookies locally
     def _save_cookies(self):
         # deserialization 反序列化
         cookies_dict = requests.utils.dict_from_cookiejar(res.cookies)
@@ -143,35 +140,50 @@ class Parser_TB:
             cookies = requests.utils.cookiejar_from_dict(input)
             return cookies
 
-    
     def get_static_content(self, file: pd.DataFrame)->Tuple[str, Union[int,float, Any],int]:
         """
         get_static_content for 商品标题, 划线价, 累计评论
         """
+        self._get_cookie()
+        
         商品标题 = list()
         划线价 = list()
-        
         try:
             for i in range(len(file.index)):
-                res= session.get(url= self.base_url[i], headers= self.headers, timeout= self.timeout)
+                req= self.res.get(file["商品链接"][i], 
+                                  headers= self.headers,)
                 if res.status_code == 200:
-                    soup = bs(res.text, 'html.parser')
+                    # statics={}
+                    HTML_PARSER= 'html.parser'
+                    soup = bs(res.text, HTML_PARSER)
+                    # res.json() #to get json
+
                     try:
                         title = soup.find("h3", class_="tb-main-title").get_text().strip()
                         line_through_price = soup.find("em", class_="tb-rmb-num").get_text()
-                        time.sleep(3)
-                        
+                        time.sleep(9)
+
                     except Exception as e:
+                        print(str(e))
                         title = "-"
                         line_through_price = "-"
                         
+
                         商品标题.append(title)
                         划线价.append(line_through_price)
 
+                        statics["商品标题"]= soup.find("h3", class_="tb-main-title").get_text().strip()
+                        statics["划线价"]= soup.find("em", class_="tb-rmb-num").get_text()
+                # return statics 
             return pd.DataFrame({"商品标题":商品标题, "划线价": 划线价})
 
-    # Simplify extraction process
+        except Exception as e:
+            print(e)
+            pass 
+
+    # parse
     def get_static_comment_update(self, url: str)->pd.DataFrame:
+        self._get_cookie()
         
         商品标题 = list()
         划线价 = list()
@@ -195,7 +207,7 @@ class Parser_TB:
             pass
 
         return pd.DataFrame({"商品标题":商品标题, "划线价": 划线价, "累计评论": 累计评论})
-                    
+                
     #parser https://detailskip.taobao.com/ for ajax rendered page 加载渲染页面
     def get_ajax_content(self, file:pd.DataFrame)->List:
         self._get_cookie()
@@ -205,31 +217,26 @@ class Parser_TB:
         for i in range(len(file.index)):
             ajax_url = "https://detailskip.taobao.com/service/getData/1/p1/item/detail/sib.htm?itemId={}&modules=dynStock,qrcode,viewer,\
                 price,duty,xmpPromotion,delivery,activity,fqg,zjys,couponActivity,soldQuantity,page,originalPrice,tradeContract"\
-                    .format(df["item_id"][i]) #get item_id
+                    .format(df["item_id"][i])
 
             req = res.get(ajax_url, headers= self.headers,)
             total_res.append(req) #TODO
-            # print(total_res)
+            print(total_res)
 
 
-#TODO for JD
+# TODO for JD
 class Parser_TM:
     def __init__(self):
-        pass 
-
+        pass
 
             
 if __name__== "__main__":
     base_url= 'https://item.taobao.com/item.htm'
     login_url = 'https://login.taobao.com/member/request_nick_check.do?_input_charset=utf-8'
     
-    # Remove login and ua infos 
-    login_id = "*"
-    ua = "*"
-    
     from_data= {
         "loginId": login_id, 
-        "password2": "4573124a04f28cf894fe3bd580da9a69245e0e5b1797f57fa63e572582b3612af69c10f2c9f08d012713c0a391ee14cf7a14f6b63333efa4999bbb92e353f6183b1ee3e4aecfe786918280b122acc9be629b76e4063c219ef843912c95d4dc15cfaa08ba7a24c22e277f2d8b4dc86df7dfd5ee5a37f4aef61ca939e7ddda5b44",
+        "password2": password_,
         "keepLogin": "false",
         "ua": ua,
         "umidGetStatusVal": "255",
@@ -255,15 +262,26 @@ if __name__== "__main__":
     df_instance= DataSource("爬取链接.xlsx")
     excel = df_instance.read_excel()
     excel= df_instance.extract_item_id(excel)
-    base_url= excel["商品链接"].values
+    tb_excel= excel[excel["channel"] == "taobao"]
     ajax_url= "https://detailskip.taobao.com/service/getData/1/p1/item/detail/sib.htm?itemId={}&modules=price,xmpPromotion,viewer,price,duty,xmpPromotion,activity,fqg,zjys,couponActivity,soldQuantity,page,originalPrice".format(excel["item_id"])
-    user_agent= "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
-    referer= "https://item.taobao.com/item.htm"
+    # user_agent= "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
+
+    ua_list = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36",
+     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36 OPR/43.0.2442.991",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36 OPR/42.0.2393.94",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36 OPR/47.0.2631.39",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) Gecko/20100101 Firefox/54.0",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) Gecko/20100101 Firefox/54.0",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) Gecko/20100101 Firefox/56.0",
+           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) like Gecko"]
+    user_agent = random.choice(ua_list)
+    # referer= "https://item.taobao.com/item.htm"
     
     with open("cookies.txt") as f:
         cookies= f.read()
-    
     tb_parser= Parser_TB(from_data, user_agent, login_url, base_url)
-    
-    test= tb_parser.parse_static_content()
+    test= tb_parser.get_static_content(tb_excel["商品链接"].values)
     test.to_csv("static_fields.csv", index= False)
