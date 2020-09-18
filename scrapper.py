@@ -77,7 +77,7 @@ class Parser_TB:
             # 'Referer':base_url,
         }
         self.res = requests.Session()
-        self.cookies_text = "cookies.text"
+        self.cookies_text = "cookies.txt"
         self.ip = ip
     
     def _get_cookie(self)-> Optional[Text]:
@@ -148,12 +148,10 @@ class Parser_TB:
         get_static_content for 商品标题, 划线价, 累计评论
         """
         self._get_cookie()
-        
         商品标题 = list()
         划线价 = list()
         for i in range(len(file)):
-            print(i)
-            req= self.res.get(file[i], 
+            req= self.res.get(file[i],
                                 headers= self.headers, 
                                 proxies={'http': 'http://' + self.ip,
                                         'https': 'https://' + self.ip})
@@ -175,15 +173,18 @@ class Parser_TB:
         return pd.DataFrame({"商品链接": file[i], "商品标题":商品标题, "划线价": 划线价})
 
     # parse
-    def get_static_comment_update(self, url: str)->pd.DataFrame:
+    def get_static_content_update(self, url: str)->pd.DataFrame:
         self._get_cookie()
-        
         商品标题 = list()
         划线价 = list()
         累计评论= list()
         
         try:
-            browser.get(url)
+            browser.get(url,
+                        headers= self.headers, 
+                        proxies={'http': 'http://' + self.ip,
+                        'https': 'https://' + self.ip})
+            
             browser.implicitly_wait(10)
             meta = browser.find_element_by_xpath("/html/head/meta[9]")
             meta_content = meta.get_attribute("content")
