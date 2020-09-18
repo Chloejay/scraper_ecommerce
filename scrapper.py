@@ -95,11 +95,11 @@ class Parser_TB:
             redirect = response.json()["needcode"]
 
         except Exception as e:
-            print(f"Failed to scrap data, error : {e}")
+            pprint(f"Failed to scrap data, error : {e}")
             raise e
         
         if not redirect:
-            print('Succeed getting cookies, to save')
+            pprint('Succeed getting cookies, to save')
             self._save_cookies()
         else:
             raise RuntimeError(f"User login FAILED! Error:{response.text}")
@@ -114,16 +114,16 @@ class Parser_TB:
             self._is_login()
         except Exception as e:
             os.remove(self.cookies_text)
-            print('Deleted EXPIRED cookies!')
+            pprint('Deleted EXPIRED cookies!')
             return False
-        print('Login Successfully!')
+        pprint('Login Successfully!')
         return True
     
     def _is_login(self)-> bool:
         response= res.get(self.login_url, self.ip)
         username = re.search(r'<input id="mtb-nickname" type="hidden" value="(.*?)"/>', response.text)
         if username:
-            print(f"UserName: {username.group(1)}")
+            pprint(f"UserName: {username.group(1)}")
             return True
         
         raise RuntimeError("Login Failed!")
@@ -132,8 +132,7 @@ class Parser_TB:
     def _save_cookies(self):
         # deserialization 反序列化
         cookies_dict = requests.utils.dict_from_cookiejar(self.res.cookies)
-        print(cookies_dict)
-        with open(self.cookies_text,"w+", encoding="utf-8") as output:
+        with open(self.cookies_text, "w+", encoding="utf-8") as output:
             json.dump(cookies_dict, output)
             
     # def _load_cookies(self):
@@ -150,6 +149,7 @@ class Parser_TB:
         self._get_cookie()
         商品标题 = list()
         划线价 = list()
+        url= list()
         for i in range(len(file)):
             req= self.res.get(file[i],
                                 headers= self.headers, 
@@ -157,20 +157,21 @@ class Parser_TB:
                                         'https': 'https://' + self.ip})
             HTML_PARSER= 'html.parser'
             soup = bs(req.text, HTML_PARSER)
-            print(soup)
+            pprint(soup)
             try:
                 title = soup.find("h3", class_="tb-main-title").get_text().strip()
                 line_through_price = soup.find("em", class_="tb-rmb-num").get_text()
                 # time.sleep(9)
                 商品标题.append(title)
                 划线价.append(line_through_price)
+                url.append(file[i])
                 
             except Exception as e:
-                print(str(e))
+                pprint(str(e))
                 title = "-"
                 line_through_price = "-"
 
-        return pd.DataFrame({"商品链接": file[i], "商品标题":商品标题, "划线价": 划线价})
+        return pd.DataFrame({"商品链接": url, "商品标题":商品标题, "划线价": 划线价})
 
     # parse
     def get_static_content_update(self, url: str)->pd.DataFrame:
@@ -215,7 +216,7 @@ class Parser_TB:
 
             req = res.get(ajax_url, headers= self.headers,)
             total_res.append(req) #TODO
-            print(total_res)
+            pprint(total_res)
 
 
 class Proxy:
@@ -276,10 +277,10 @@ if __name__== "__main__":
     user_agent= "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
     
     # add proxy server
-    proxy_url="http://api.xdaili.cn/xdaili-api//greatRecharge/getGreatIp?spiderId=c671e46bf2ae4092bd03a8ed3566c952&orderno=YZ20209189723EyhPHp&returnType=2&count=20"
+    proxy_url="http://api.xdaili.cn/xdaili-api//greatRecharge/getGreatIp?spiderId=c671e46bf2ae4092bd03a8ed3566c952&orderno=YZ20209199072qsKPur&returnType=2&count=20"
     proxy_ips = Proxy().get_proxy(proxy_url)
     ip = random.choice(proxy_ips)
-    print(f"Get IP: {ip}")
+    pprint(f"Get IP: {ip}")
     
     with open("cookies.txt") as f:
         cookies= f.read()
@@ -287,3 +288,6 @@ if __name__== "__main__":
     tb_parser= Parser_TB(from_data, user_agent, login_url, base_url, ip)
     test= tb_parser.get_static_content(tb_excel.loc[:,"商品链接"][:12].values)
     test.to_csv("static_fields.csv", index= False)
+
+    # test2= tb_parser.get_static_content(tb_excel.loc[:,"商品链接"][:12].values)
+    # test2=to_csv("static_fields_update.csv", index= False)
