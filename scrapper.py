@@ -21,9 +21,6 @@ from config import *
 # from webdriver_manager.chrome import ChromeDriverManager
 # browser = webdriver.Chrome(ChromeDriverManager().install())
 
-import warnings
-warnings.simplefilter("ignore")
-
 logger = logging.getLogger(__name__)
 
 #=========================
@@ -67,8 +64,7 @@ class Parse_TB:
                  base_url:str,
                  ip: str)-> None:
         
-    # IP been blocked
-        self._from_data = from_data
+        self._from_data = from_data ## IP been blocked
         self.user_agent= user_agent
         self.login_url = login_url
         self.base_url= base_url
@@ -103,7 +99,7 @@ class Parse_TB:
         else:
             raise RuntimeError("User login FAILED! Error:{}".format(response.text))
     
-    # Check if have cookies and if expired
+    # if have cookies and if expired
     def _verify_cookies(self)->bool:
         if not os.path.exists(self.cookies_text):
             return False
@@ -187,7 +183,6 @@ class Parse_TB:
                                 'user-agent': self.user_agent,
                                 'Content-Type':self.content_type}, 
                             proxies= self.proxies,)
-                
                 browser.implicitly_wait(wait_time)
                 meta = browser.find_element_by_xpath("/html/head/meta[9]")
                 meta_content = meta.get_attribute("content")
@@ -258,18 +253,19 @@ class Parse_TM:
     
             
 if __name__== "__main__":
-    
     df_instance = DataSource(DATA_SOURCE_PATH)
     excel= df_instance.extract_item_id(df_instance.read_excel())
-    tb_excel= excel[excel["channel"] == "taobao"]
-    ajax_url= "https://detailskip.taobao.com/service/getData/1/p1/item/detail/sib.htm?itemId={}&modules=price,xmpPromotion,viewer,price,duty,xmpPromotion,activity,fqg,zjys,couponActivity,soldQuantity,page,originalPrice".format(tb_excel["item_id"])
+    tb_excel = excel[excel["channel"] == "taobao"]
+    ajax_url = "https://detailskip.taobao.com/service/getData/1/p1/item/detail/sib.htm?itemId={}&modules=price,xmpPromotion,\
+        viewer,price,duty,xmpPromotion,activity,fqg,zjys,couponActivity,soldQuantity,page,originalPrice"\
+            .format(tb_excel["item_id"])
 
     proxy_ips = Proxy().get_proxy(proxy_url)
     ip = random.choice(proxy_ips)
     pprint(f"Get IP: {ip}")
     
-    tb_parser= Parse_TB(from_data, USER_AGENT, LOGIN_URL, BASE_URL, ip)
-    test= tb_parser.get_static_content(tb_excel.loc[:,"商品链接"][:12].values, TIMEOUT)
+    tb_parser = Parse_TB(from_data, USER_AGENT, LOGIN_URL, BASE_URL, ip)
+    test = tb_parser.get_static_content(tb_excel.loc[:,"商品链接"][:12].values, TIMEOUT)
     test.to_csv("static_fields.csv", index= False)
 
     #get ajax =>"rgv587_flag":"sm" blocked error freq is high, esp with few remote proxies.
