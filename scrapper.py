@@ -11,8 +11,8 @@ import urllib
 from pprint import pprint
 from typing import List, Tuple, Any, Dict, Text, Union, Callable, Optional
 
-from multiprocessing import Process, Queue 
-from requests.exceptions import ReadTimeout
+from multiprocessing import Process, Queue, Pool
+from requests.exceptions import ReadTimeout, ConnectionError
 
 from config import * 
 
@@ -62,17 +62,17 @@ class Parse_TB:
                  user_agent: str, 
                  login_url:str, 
                  base_url:str,
-                 ip: str)-> None:
+                 ip: str,
+                 timeout: int)-> None:
         
         self._from_data = from_data ## IP been blocked
         self.user_agent= user_agent
         self.login_url = login_url
         self.base_url= base_url
         self.ip = ip
-        self.proxies = {
-            'http': 'http://' + self.ip,
-            'https': 'https://' + self.ip
-            }
+        self.timeout = timeout
+        self.proxies = {'http': 'http://' + self.ip,
+                        'https': 'https://' + self.ip}
         self.content_type ="application/x-www-form-urlencoded"
         self.res = requests.Session()
         self.cookies_text = "cookies.txt"
@@ -84,8 +84,7 @@ class Parse_TB:
         try:
             response = self.res.post(self.login_url, 
                                      data = self._from_data, 
-                                     proxies= self.proxies,
-                                     )
+                                     proxies= self.proxies,)
             response.raise_for_status()
             redirect = response.json()["needcode"]
 
@@ -136,7 +135,7 @@ class Parse_TB:
             # cookies = requests.utils.cookiejar_from_dict(input)
             # return cookies
 
-    def get_static_content(self, file: List[str], timeout: int)->Tuple[str, Union[int,float, Any],int]:
+    def get_static_content(self, file: List[str], sleep:int=5)->Tuple[str, Union[int,float, Any],int]:
         """
         商品标题, 划线价, 累计评论
         """
@@ -149,9 +148,10 @@ class Parse_TB:
             req = self.res.get(file[i],
                                headers= {'user-agent': self.user_agent,
                                          'Content-Type':self.content_type}, 
-                               proxies= self.proxies
-                                        )
-            time.sleep(timeout)
+                               proxies= self.proxies,
+                               timeout= self.timeout)
+            
+            time.sleep(sleep)
             HTML_PARSER = 'html.parser'
             soup = bs(req.text, HTML_PARSER)
             pprint(soup)
@@ -182,7 +182,8 @@ class Parse_TB:
                             headers= {
                                 'user-agent': self.user_agent,
                                 'Content-Type':self.content_type}, 
-                            proxies= self.proxies,)
+                            proxies= self.proxies,
+                            timeout = self.timeout)
                 browser.implicitly_wait(wait_time)
                 meta = browser.find_element_by_xpath("/html/head/meta[9]")
                 meta_content = meta.get_attribute("content")
@@ -201,9 +202,8 @@ class Parse_TB:
 
         return pd.DataFrame({"商品链接": url, "商品标题":商品标题, "划线价": 划线价, "累计评论": 累计评论})
 
-               
     #parse https://detailskip.taobao.com/ for ajax-rendered page 加载渲染页面
-    def get_ajax_content(self, file:pd.DataFrame, timeout: int)->List:
+    def get_ajax_content(self, file:pd.DataFrame, sleep: int)->List:
         self._get_cookie()
         total_res = list()
         
@@ -218,8 +218,9 @@ class Parse_TB:
                                        'Content-Type':self.content_type,
                                        "refere":self.ajax_refere},
                                    verify= False, 
-                                   proxies= self.proxies,)
-                time.sleep(timeout)
+                                   proxies= self.proxies,
+                                   timeout= self.timeout)
+                time.sleep(sleep)
                 total_res.append(req.text) #TODO
                 return total_res
             
@@ -259,15 +260,23 @@ if __name__== "__main__":
     ajax_url = "https://detailskip.taobao.com/service/getData/1/p1/item/detail/sib.htm?itemId={}&modules=price,xmpPromotion,\
         viewer,price,duty,xmpPromotion,activity,fqg,zjys,couponActivity,soldQuantity,page,originalPrice"\
             .format(tb_excel["item_id"])
-
+    
     proxy_ips = Proxy().get_proxy(proxy_url)
     ip = random.choice(proxy_ips)
     pprint(f"Get IP: {ip}")
     
-    tb_parser = Parse_TB(from_data, USER_AGENT, LOGIN_URL, BASE_URL, ip)
-    test = tb_parser.get_static_content(tb_excel.loc[:,"商品链接"][:12].values, TIMEOUT)
-    test.to_csv("static_fields.csv", index= False)
-
-    #get ajax =>"rgv587_flag":"sm" blocked error freq is high, esp with few remote proxies.
-    # get_ajax= tb_parser.get_ajax_content(tb_excel, TIMEOUT)
+    tb_parser = Parse_TB(from_data, USER_AGENT, LOGIN_URL, BASE_URL, ip, TIMEOUT)
+    
+    start= time.time()
+    with Pool(processes= 4) as pool:
+        test = pool.map(tb_parser.get_static_content, [tb_excel.loc[:,"商品链接"][:].values],)
+        test.to_csv("static_fields1.csv", index= False)
+        
+    till_end= time.time() -start 
+    pprint(f"Cost time is {till_end}")
+    pool.close()
+    pool.join()
+    
+    #need to fix ajax =>"rgv587_flag":"sm"
+    # get_ajax= tb_parser.get_ajax_content(tb_excel, SLEEP)
     # print(get_ajax)
