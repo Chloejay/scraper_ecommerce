@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from scraper.scrap_whisky import *
 from scraper.scrap_graph_data import *
 from config import * 
@@ -25,7 +27,6 @@ def main():
     parser_graph= Parser_graph(soup_2)
 
     RW_Apex_1000_Performance_Summary, RW_Apex_250_Performance_Summary, RW_Apex_100_Performance_Summary = parser_graph.get_graph_table() 
-    # Save to local dir
     RW_Apex_1000_Performance_Summary.to_csv(os.path.join(SAVE_PATH, "RW_Apex_1000_Performance_Summary1.csv"))
     RW_Apex_250_Performance_Summary.to_csv(os.path.join(SAVE_PATH, "RW_Apex_250_Performance_Summary1.csv"))
     RW_Apex_100_Performance_Summary.to_csv(os.path.join(SAVE_PATH, "RW_Apex_100_Performance_Summary1.csv"))

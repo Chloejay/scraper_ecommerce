@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from .scrap_whisky import * 
 from config import * 
 
