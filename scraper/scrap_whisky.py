@@ -6,7 +6,6 @@ import os
 from pprint import pprint
 from typing import List, Any, Dict, Text, Union, Optional
 
-from config import * 
 
 class DataSource:
     def __init__(self, url: str, headers:Dict[str, str])-> None:
@@ -131,30 +130,3 @@ class Parser:
                              "评分": rating_list, 
                              "版本":versions_list, 
                              "商店链接": shoplinks_list})
-
-
-if __name__ =="__main__":
-    
-    URL= "https://www.whiskybase.com/whiskies/brand/81362/ardbeg"
-    SAVE_PATH= "whisky_data"
-    headers={"cookie": WHISKY_COOKIES,
-             "referer": "https://www.whiskybase.com/whiskies/brand/81362/ardbeg",
-             "user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
-        }
-    
-    datasource= DataSource(URL, headers)
-    soup= datasource.get_html()
-    parser= Parser(soup)
-    left_section_data= parser.get_top_left_content()
-    right_section_data= parser.get_top_right_content()
-
-    #Save to CSV locally 
-    left_section_data.to_csv(os.path.join(SAVE_PATH, "average_vote.csv"), index= False)
-    right_section_data.to_csv(os.path.join(SAVE_PATH, "top5_votes.csv"), index= False)
-
-    # product details table
-    parse_main_table= parser.parse_main_table()
-    parse_main_table.to_csv(os.path.join(SAVE_PATH, "product.csv"), index= False)
-    
-
-    

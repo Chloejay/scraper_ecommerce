@@ -75,7 +75,7 @@ class Parse_TB:
                         'https': 'https://' + self.ip}
         self.content_type ="application/x-www-form-urlencoded"
         self.res = requests.Session()
-        self.cookies_text = "cookies.txt"
+        self.cookies_text = "cookies/cookies.txt"
         self.ajax_refere= "https://detailskip.taobao.com"
     
     def _get_cookie(self)-> Optional[Text]:

@@ -1,4 +1,4 @@
-from scrap_whisky import * 
+from .scrap_whisky import * 
 from config import * 
 
 
@@ -47,26 +47,3 @@ class Parser_graph:
             print(tables_list)
 
         return tables_list
-
-
-if __name__ =="__main__":
-    
-    URL = "https://www.rarewhisky101.com/indices/market-performance-indices/rw-apex-indices"
-    headers ={
-    "accept":"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-    "cookies": WHISKY_COOKIES2,
-    "user-agent":"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"  
-    }
-
-    datasource= DataSource(URL, headers)
-    soup= datasource.get_html()
-    parser= Parser_graph(soup)
-    # test= parser.get_whole_table() 
-    # print(test)
-
-    
-    RW_Apex_1000_Performance_Summary, RW_Apex_250_Performance_Summary, RW_Apex_100_Performance_Summary = parser.get_graph_table() 
-    # Save to local dir
-    RW_Apex_1000_Performance_Summary.to_csv(os.path.join(SAVE_PATH, "RW_Apex_1000_Performance_Summary.csv"))
-    RW_Apex_250_Performance_Summary.to_csv(os.path.join(SAVE_PATH, "RW_Apex_250_Performance_Summary.csv"))
-    RW_Apex_100_Performance_Summary.to_csv(os.path.join(SAVE_PATH, "RW_Apex_100_Performance_Summary.csv"))
