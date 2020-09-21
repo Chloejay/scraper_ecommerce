@@ -35,8 +35,8 @@ class Parser:
         for distillery in self.soup.find_all(id="distillery-average"):
             average_rating.append(distillery.find(id="distillery-average-num").text)
             total_votes.append(distillery.find(id="distillery-votes").text.strip())
-            
-        return pd.DataFrame({"average_rating": average_rating, "total_votes":total_votes})
+        
+        return pd.DataFrame({"平均分": average_rating, "投票数":total_votes})
 
 
     def get_top_right_content(self)->pd.DataFrame:
@@ -122,15 +122,15 @@ class Parser:
                 shoplinks_list.append(" ")
 
 #     return name, started_age, strength_list, size_list, bottled_list, casknumber_list, rating_list, versions_list, shoplinks_list
-        return pd.DataFrame({"name":name, 
-                             "started_age": started_age,
-                             "strength_list": strength_list, 
-                             "size_list": size_list, 
-                             "bottle_size": bottled_list, 
-                             "casknumber": casknumber_list, 
-                             "rating_list": rating_list, 
-                             "version_list":versions_list, 
-                             "shoplinks": shoplinks_list})
+        return pd.DataFrame({"名称":name, 
+                             "规定的年份": started_age,
+                             "酒精度": strength_list, 
+                             "容量": size_list, 
+                             "装瓶": bottled_list, 
+                             "桶号": casknumber_list, 
+                             "评分": rating_list, 
+                             "版本":versions_list, 
+                             "商店链接": shoplinks_list})
 
 
 if __name__ =="__main__":
