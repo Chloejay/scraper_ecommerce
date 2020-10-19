@@ -46,7 +46,7 @@ class Bilibili:
     def get_verify_elements(self):
         self.driver_wait.until(EC.presence_of_element_located((By.CLASS_NAME, "geetest_item_img")))
         sleep(2)
-        element= self.driver_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"img.geetest_item_img")))
+        element= self.driver_wait.until(EC.presence_of_element_located((By.CLASS_NAME, "geetest_table_box")))
         print("成功获取验证码节点。")
         return element 
 
@@ -58,10 +58,10 @@ class Bilibili:
         size= element.size 
         print(size)
         top, buttom, left, right= \
-            location["y"], \
-                location["y"] + size["height"], \
-                    location["x"], \
-                        location["x"] + size["width"]
+            location["y"]*2, \
+                (location["y"] +size["height"])*2, \
+                     location["x"]*2, \
+                        (location["x"] + size["width"])*2
 
         return top, buttom, left, right 
 
@@ -75,7 +75,7 @@ class Bilibili:
         return screenshoot 
     
     def get_verify_image(self, name= "need_to_verified.png"):
-        top, buttom, left, right= self.get_verify_pos()
+        top, buttom, left, right = self.get_verify_pos()
         print(f"验证码位置：{top, buttom, left, right}")
 
         screenshoot = self.get_screenshoot() 
@@ -132,6 +132,8 @@ class Bilibili:
             print(success)
         except Exception as e:
             print("登录失败。",e)
+        finally:
+            self.browser.quit()
             
 
 
