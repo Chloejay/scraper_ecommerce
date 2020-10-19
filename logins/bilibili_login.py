@@ -30,7 +30,7 @@ class Bilibili:
         self.browser= webdriver.Firefox(executable_path="/Users/chloeji/geckodriver", capabilities=caps)
         self.driver_wait= WebDriverWait(self.browser, 60)
         """
-        超级鹰的用户名、密码以及软件 ID
+        设置超级鹰的用户名、密码以及软件 ID
         """
         CHAOJIYING_CONFIG= "chaojiying_login"
         CHAOJIYING_USERNAME_ = config.get(CHAOJIYING_CONFIG, "CHAOJIYING_USERNAME")
@@ -95,9 +95,13 @@ class Bilibili:
 
     def get_points(self, verify_result):
         groups = verify_result.get("pic_str").split("|")
-        locations = [[int(number) for number in group.split(",")] for group in groups]
-        return locations 
-
+        try:
+            locations = [[int(number) for number in group.split(",")] for group in groups]
+        except ValueError:
+            locations = [[int(float(number)) for number in group.split(",")] for group in groups]
+        return locations
+    
+# geckodriver browser issue with viewpoint
     def touch_click_words(self, locations):
         for location in locations:
             print(location)
@@ -106,13 +110,12 @@ class Bilibili:
             try:
                 ActionChains(self.browser).\
                     move_to_element_with_offset(self.get_verify_elements(),\
-                         X_OFFSET, \
-                             Y_OFFSET).\
-                                 click().\
-                                     perform()
+                         X_OFFSET, Y_OFFSET).\
+                             click().\
+                                 perform()
                 sleep(3)
             except MoveTargetOutOfBoundsException:
-                self.browser.execute_script('window.scrollTo(0, ' + str(self.get_verify_elements()) + ');')
+                self.browser.execute_script('window.scrollTo(0, " + str(self.get_verify_elements())");')
                 
 
     def touch_click_verify(self):
@@ -127,6 +130,7 @@ class Bilibili:
 
     def crack(self, user, pswd):
         self.browser.execute_script("document.body.style.transform='scale(0.9)';")
+        self.browser.set_window_size(1024, 768)
         self.send_infos(user, pswd)
         button = self.get_verify_button()
         button.click()
@@ -135,6 +139,7 @@ class Bilibili:
         bytes_array = io.BytesIO()
         image.save(bytes_array, "PNG")
 
+        sleep(10)
         result = self.chaojiying.PostPic(bytes_array.getvalue(), self.CHAOJIYING_KIND)
         print(result)
 
