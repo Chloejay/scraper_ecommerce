@@ -13,6 +13,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.common.exceptions import MoveTargetOutOfBoundsException
 from chaojiying import ChaojiyingClient
 import configparser
 from pprint import pprint
@@ -24,7 +26,8 @@ config.read("config.ini")
 class Bilibili:
     def __init__(self):
         self.login_url= "https://passport.bilibili.com/login"
-        self.browser= webdriver.Firefox(executable_path="/Users/chloeji/geckodriver")
+        caps= DesiredCapabilities().FIREFOX
+        self.browser= webdriver.Firefox(executable_path="/Users/chloeji/geckodriver", capabilities=caps)
         self.driver_wait= WebDriverWait(self.browser, 60)
         """
         超级鹰的用户名、密码以及软件 ID
@@ -100,11 +103,17 @@ class Bilibili:
             print(location)
             X_OFFSET = location[0]
             Y_OFFSET = location[1]
-            ActionChains(self.browser).\
-                move_to_element(self.get_verify_elements()).\
-                    click().\
-                        perform()
-            sleep(3)
+            try:
+                ActionChains(self.browser).\
+                    move_to_element_with_offset(self.get_verify_elements(),\
+                         X_OFFSET, \
+                             Y_OFFSET).\
+                                 click().\
+                                     perform()
+                sleep(3)
+            except MoveTargetOutOfBoundsException:
+                self.browser.execute_script('window.scrollTo(0, ' + str(self.get_verify_elements()) + ');')
+                
 
     def touch_click_verify(self):
         button = self.driver_wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "geetest_commit")))
