@@ -42,7 +42,7 @@ class bilibili:
         button= self.driver_wait.until(EC.presence_of_element_located((By.XPATH, '//a[@class="btn btn-login"]')))
         print(button.text)
         time.sleep(3)
-        return button 
+        return button
 
     def get_verify_elements(self):
         self.driver_wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'geetest_item_img')))
@@ -59,8 +59,8 @@ class bilibili:
         size= element.size 
         print(size)
         top, buttom, left, right= \
-            location["y"]+40, \
-                location["y"] + size["height"]+40, \
+            location["y"], \
+                location["y"] + size["height"], \
                     location["x"], \
                         location["x"] + size["width"]
 
@@ -70,13 +70,12 @@ class bilibili:
         # http://allselenium.info/taking-screenshot-using-python-selenium-webdriver/
         screenshoot= self.browser.get_screenshot_as_png()
         screenshoot= Image.open(io.BytesIO(screenshoot))
-        time.sleep(2)
+        time.sleep(5)
         screenshoot.save("screenshoot.png")
 
         return screenshoot 
 
-
-    def get_verify_image(self, name= "chapcha.png"):
+    def get_verify_image(self, name= "need_to_verified.png"):
         top, buttom, left, right= self.get_verify_pos()
         print(f"验证码位置：{top, buttom, left, right}")
 
@@ -126,9 +125,9 @@ class bilibili:
         locations= self.get_points(result)
         self.touch_click_words(locations)
         self.touch_click_verify() 
-        time.sleep(10)
+        time.sleep(3)
         try:
-            success= self.browser.driver_wait.until(EC.text_to_be_present_in_element((By.TAG_NAME, "h2"), "登录成功"))
+            success= self.driver_wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, "bilifont bili-icon_dingdao_zhuzhan"), "主站"))
             print(success)
         except Exception as e:
             print("登录失败。",e)
@@ -137,7 +136,7 @@ class bilibili:
 
 
 if __name__ == "__main__":
-    bilibili_login= "bilibili_login"
+    bilibili_login= "login_info"
     user= config.get(bilibili_login, "user")
     pswd= config.get(bilibili_login, "password")
     bilibili().crack(user, pswd)
