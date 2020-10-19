@@ -1,8 +1,6 @@
 import io
-import time
-import base64
+from time import sleep, time
 import selenium
-import numpy as np
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -10,13 +8,14 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from chaojiying import ChaojiyingClient
-# 这个需要有图片识别,OCR的基础
 import configparser
+# 这个需要有图片识别,OCR的基础
+
 
 config = configparser.ConfigParser() 
 config.read("config.ini")
 
-class bilibili:
+class Bilibili:
     def __init__(self):
         self.login_url= "https://passport.bilibili.com/login"
         self.browser= webdriver.Firefox(executable_path="/Users/chloeji/geckodriver")
@@ -39,21 +38,21 @@ class bilibili:
         password_sender.send_keys(password)
 
     def get_verify_button(self):
-        button= self.driver_wait.until(EC.presence_of_element_located((By.XPATH, '//a[@class="btn btn-login"]')))
+        button= self.driver_wait.until(EC.presence_of_element_located((By.XPATH, "//a[@class='btn btn-login']")))
         print(button.text)
-        time.sleep(3)
+        sleep(3)
         return button
 
     def get_verify_elements(self):
-        self.driver_wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'geetest_item_img')))
-        element= self.driver_wait.until(EC.presence_of_element_located((By.CLASS_NAME,'geetest_item_img')))
-        print('成功获取验证码节点')
-
+        self.driver_wait.until(EC.presence_of_element_located((By.CLASS_NAME, "geetest_item_img")))
+        sleep(2)
+        element= self.driver_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"img.geetest_item_img")))
+        print("成功获取验证码节点。")
         return element 
 
     def get_verify_pos(self):
         element= self.get_verify_elements()
-        time.sleep(2)
+        sleep(2)
         location= element.location 
         print(location)
         size= element.size 
@@ -70,20 +69,20 @@ class bilibili:
         # http://allselenium.info/taking-screenshot-using-python-selenium-webdriver/
         screenshoot= self.browser.get_screenshot_as_png()
         screenshoot= Image.open(io.BytesIO(screenshoot))
-        time.sleep(5)
+        sleep(5)
         screenshoot.save("screenshoot.png")
 
         return screenshoot 
-
+    
     def get_verify_image(self, name= "need_to_verified.png"):
         top, buttom, left, right= self.get_verify_pos()
         print(f"验证码位置：{top, buttom, left, right}")
 
         screenshoot = self.get_screenshoot() 
-        chapcha= screenshoot.crop((left, top, right, buttom))
-        chapcha.save(name)
+        verification_area= screenshoot.crop((left, top, right, buttom))
+        verification_area.save(name)
 
-        return chapcha 
+        return verification_area 
 
     def get_points(self, verify_result):
         groups= verify_result.get("pic_str").split("|")
@@ -98,16 +97,16 @@ class bilibili:
                     location[1]).\
                         click().\
                             perform()
-            time.sleep(3)
+            sleep(3)
 
     def touch_click_verify(self):
-        button= self.driver_wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "geetest_commit_tip")))
+        button= self.driver_wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "geetest_commit")))
         button.click()
 
     def login(self):
         submit= self.driver_wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "btn btn-login")))
         submit.click()
-        time.sleep(10)
+        sleep(10)
         print("登录成功。")
 
     def crack(self, user, pswd):
@@ -125,9 +124,11 @@ class bilibili:
         locations= self.get_points(result)
         self.touch_click_words(locations)
         self.touch_click_verify() 
-        time.sleep(3)
+        sleep(3)
         try:
-            success= self.driver_wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, "bilifont bili-icon_dingdao_zhuzhan"), "主站"))
+            success= self.driver_wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, \
+                "bilifont bili-icon_dingdao_zhuzhan"), \
+                    "主站"))
             print(success)
         except Exception as e:
             print("登录失败。",e)
@@ -139,4 +140,4 @@ if __name__ == "__main__":
     bilibili_login= "login_info"
     user= config.get(bilibili_login, "user")
     pswd= config.get(bilibili_login, "password")
-    bilibili().crack(user, pswd)
+    Bilibili().crack(user, pswd)
