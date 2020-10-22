@@ -1,12 +1,11 @@
-import pandas as pd
 import re
 import requests
+import pandas as pd
 from bs4 import BeautifulSoup as bs
 import time
 import random
 import json
 import os
-import logging
 import urllib
 from loguru import logger
 from typing import List, Tuple, Any, Dict, Text, Union, Callable, Optional
@@ -16,9 +15,6 @@ from requests.exceptions import ReadTimeout, ConnectionError
 from selenium import webdriver
 
 from config.config import *
-
-logger = logging.getLogger(__name__)
-logger.SetLevel(info.INFO)
 
 # =========================
 # GET DATA SOURCE FILE
@@ -180,8 +176,8 @@ class Parse_TB:
                 line_through_price = "-"
 
         return pd.DataFrame({"商品链接": url, "商品标题": 商品标题, "划线价": 划线价})
+    
     # parse
-
     def get_static_content_update(
             self,
             url: List[str],
@@ -193,6 +189,8 @@ class Parse_TB:
         url = list()
         try:
             for i in range(len(url)):
+                driver_path= "/Users/chloeji/geckodriver"
+                browser= webdriver.Firefox(executable_path=driver_path)
                 browser.get(url[i],
                             headers={
                                 'user-agent': self.user_agent,
@@ -242,7 +240,6 @@ class Parse_TB:
                 time.sleep(sleep)
                 total_res.append(req.text)
                 return total_res
-
             except ReadTimeout:
                 pprint("Timeout!")
 
@@ -276,7 +273,7 @@ if __name__ == "__main__":
 
     proxy_ips = Proxy().get_proxy(proxy_url)
     ip = random.choice(proxy_ips)
-    logger.info(f"Get IP: {ip} Successfully.")
+    pprint(f"Get IP: {ip} Successfully.")
 
     tb_parser = Parse_TB(
         from_data,
@@ -293,7 +290,7 @@ if __name__ == "__main__":
         taobao_data.to_csv("static_fields1.csv", index=False)
 
     till_end = time.time() - start
-    logger.info(f"Cost time is {till_end}")
+    pprint(f"Cost time is {till_end}")
     pool.close()
     pool.join()
 
