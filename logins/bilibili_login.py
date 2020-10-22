@@ -22,10 +22,14 @@ from chaojiying import ChaojiyingClient
 # 添加参数使得每次不需要打开浏览器就可以完成所有的爬取工作
 from selenium.webdriver.firefox.options import Options
 import traceback
+import sys 
+sys.path.append("..")
+
+from config.config import * 
 
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read(CONFIG_FILE_PATH)
 
 
 class Bilibili:

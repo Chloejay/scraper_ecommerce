@@ -11,6 +11,10 @@ import configparser
 from loguru import logger
 from retrying import retry
 import arrow
+import sys 
+sys.path.append("..")
+
+from config.config import * 
 
 
 class TB_Spider:
@@ -69,7 +73,7 @@ class TB_Spider:
 
 if __name__ == "__main__":
     config = configparser.ConfigParser()
-    config.read("config.ini")
+    config.read(CONFIG_FILE_PATH)
     user = config.get("login_info", "user")
     pswd = config.get("login_info", "password")
     TB_Spider(user, pswd).login()
