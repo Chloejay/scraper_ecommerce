@@ -1,17 +1,27 @@
 # config
 from configparser import ConfigParser
 
-headers_config = ConfigParser()
-headers_config.read("config.ini")
-login_id = config.get("login_info", "user")
-password_ = headers_config.get("header_info", "password_")
-ua = headers_config.get("header)info", "ua")
-WHISKY_COOKIES = headers_config.get("header_info", "WHISKY_COOKIES")
-WHISKY_COOKIES2 = headers_config, get("header)info", "WHISKY_COOKIES2")
+config = ConfigParser()
+config.read("../config/config.ini")
 
+LOGIN_INI = "login_info"
+user = config.get(LOGIN_INI, "user")
+pswd = config.get(LOGIN_INI, "password")
+
+ua = config.get("header_info", "ua")
+# WHISKY_COOKIES = config.get("header_info", "WHISKY_COOKIES")
+# WHISKY_COOKIES2 = config.get("header_info", "WHISKY_COOKIES2")
+
+CHAOJIYING_CONFIG = "chaojiying_login"
+CHAOJIYING_USERNAME_ = config.get(
+    CHAOJIYING_CONFIG, "CHAOJIYING_USERNAME")
+CHAOJIYING_PASSWORD_ = config.get(
+    CHAOJIYING_CONFIG, "CHAOJIYING_PASSWORD")
+CHAOJIYING_SOFT_ID_ = config.get(
+    CHAOJIYING_CONFIG, "CHAOJIYING_SOFT_ID")
+CHAOJIYING_KIND = config.get(CHAOJIYING_CONFIG, "CHAOJIYING_KIND")
 
 # FILE_PATH
-CONFIG_FILE_PATH = "../config/config.ini"
 DATA_SOURCE_PATH = "source/爬取链接.xlsx"
 BASE_URL = 'https://item.taobao.com/item.htm'
 LOGIN_URL = 'https://login.taobao.com/member/request_nick_check.do?_input_charset=utf-8'
@@ -26,8 +36,8 @@ USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36
 ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
 
 from_data = {
-    "loginId": login_id,
-    "password2": password_,
+    "loginId": user,
+    "password2": pswd,
     "keepLogin": "false",
     "ua": ua,
     "umidGetStatusVal": "255",
@@ -49,14 +59,14 @@ from_data = {
     "returnUrl": "https://www.taobao.com/",
     "fromSite:": "0"}
 
-headers = {"cookie": WHISKY_COOKIES,
-           "referer": "https://www.whiskybase.com/whiskies/brand/81362/ardbeg",
-           "user-agent": USER_AGENT}
+# headers = {"cookie": WHISKY_COOKIES,
+#    "referer": "https://www.whiskybase.com/whiskies/brand/81362/ardbeg",
+#    "user-agent": USER_AGENT}
 
-headers_2 = {
-    "Accept": ACCEPT,
-    "cookies": WHISKY_COOKIES2,
-    "user-agent": USER_AGENT}
-
+# headers_2 = {
+# "Accept": ACCEPT,
+# "cookies": WHISKY_COOKIES2,
+# "user-agent": USER_AGENT}
+#
 # set up for proxy server to prevent IP being blocked.
 proxy_url = "http://api.xdaili.cn/xdaili-api//greatRecharge/getGreatIp?spiderId=c671e46bf2ae4092bd03a8ed3566c952&orderno=YZ20209194777fbU1ls&returnType=2&count=20"

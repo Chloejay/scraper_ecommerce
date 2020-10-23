@@ -1,3 +1,4 @@
+from config.config import *
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -6,15 +7,11 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from time import sleep, time
 from datetime import datetime
-import logging
-import configparser
 from loguru import logger
 from retrying import retry
 import arrow
-import sys 
+import sys
 sys.path.append("..")
-
-from config.config import * 
 
 
 class TB_Spider:
@@ -72,8 +69,4 @@ class TB_Spider:
 
 
 if __name__ == "__main__":
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE_PATH)
-    user = config.get("login_info", "user")
-    pswd = config.get("login_info", "password")
     TB_Spider(user, pswd).login()

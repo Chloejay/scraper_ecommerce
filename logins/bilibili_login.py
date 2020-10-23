@@ -4,6 +4,7 @@ __author__: "Chloe Ji" ji.jie@edhec.com
 Update Date: 2020-10-19
 """
 
+from config.config import *
 import io
 from time import sleep, time
 from PIL import Image
@@ -22,14 +23,8 @@ from chaojiying import ChaojiyingClient
 # 添加参数使得每次不需要打开浏览器就可以完成所有的爬取工作
 from selenium.webdriver.firefox.options import Options
 import traceback
-import sys 
+import sys
 sys.path.append("..")
-
-from config.config import * 
-
-
-config = configparser.ConfigParser()
-config.read(CONFIG_FILE_PATH)
 
 
 class Bilibili:
@@ -43,18 +38,9 @@ class Bilibili:
             capabilities=caps,
             options=firefox_options)
         self.driver_wait = WebDriverWait(self.browser, 60)
-
         """
         设置超级鹰的用户名、密码以及软件 ID
         """
-        CHAOJIYING_CONFIG = "chaojiying_login"
-        CHAOJIYING_USERNAME_ = config.get(
-            CHAOJIYING_CONFIG, "CHAOJIYING_USERNAME")
-        CHAOJIYING_PASSWORD_ = config.get(
-            CHAOJIYING_CONFIG, "CHAOJIYING_PASSWORD")
-        CHAOJIYING_SOFT_ID_ = config.get(
-            CHAOJIYING_CONFIG, "CHAOJIYING_SOFT_ID")
-        self.CHAOJIYING_KIND = config.get(CHAOJIYING_CONFIG, "CHAOJIYING_KIND")
         self.chaojiying = ChaojiyingClient(
             CHAOJIYING_USERNAME_,
             CHAOJIYING_PASSWORD_,
@@ -180,7 +166,7 @@ class Bilibili:
 
         sleep(10)
         result = self.chaojiying.PostPic(
-            bytes_array.getvalue(), self.CHAOJIYING_KIND)
+            bytes_array.getvalue(), CHAOJIYING_KIND)
         pprint(result)
 
         locations = self.get_points(result)
@@ -198,7 +184,4 @@ class Bilibili:
 
 
 if __name__ == "__main__":
-    bilibili_login = "login_info"
-    user = config.get(bilibili_login, "user")
-    pswd = config.get(bilibili_login, "password")
     Bilibili().crack(user, pswd)
