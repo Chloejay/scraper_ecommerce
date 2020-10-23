@@ -1,4 +1,3 @@
-from config.config import *
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -12,6 +11,8 @@ from retrying import retry
 import arrow
 import sys
 sys.path.append("..")
+
+from config.config import *
 
 
 class TB_Spider:

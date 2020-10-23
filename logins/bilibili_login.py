@@ -4,7 +4,6 @@ __author__: "Chloe Ji" ji.jie@edhec.com
 Update Date: 2020-10-19
 """
 
-from config.config import *
 import io
 from time import sleep, time
 from PIL import Image
@@ -25,6 +24,8 @@ from selenium.webdriver.firefox.options import Options
 import traceback
 import sys
 sys.path.append("..")
+
+from config.config import *
 
 
 class Bilibili:
